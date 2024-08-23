@@ -1,0 +1,102 @@
+openapi: 3.0.1
+info:
+  title: Кредитный трекер и калькулятор API
+  description: "\n\n\t\tНаш продукт - это кредитный трекер открытых позиций и калькулятор, для физических лиц. В первую очередь, наше приложение - микросервис для системы кредитования. \nМикросервис рассчитывает графики платежей по кредиту, и сохраняет их для авторизованных пользователей. Данные по кредиту можно посмотреть в личном кабинете приложения, или получить данные в виде JSON, отправив запрос с другого сервиса"
+  
+  version: 1.0.0
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/BARBASHINA2016/KreditT1/1.0.0
+  - url: /team21/api/v1
+    description: Endpoint
+tags:
+  - name: registration and authorization
+    description: Методы для регистрации и авторизации
+paths:
+  /auth/register:
+    post:
+      tags:
+        - registration and authorization
+      summary: Зарегистрировать нового пользователя
+      description: Регистрация нового пользователя, с указанием логина и пароля. При успешной регистрации, пользователю выдается JWT-токен
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Authentication'
+      responses:
+        '200':
+          description: ОК
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JWT'
+        '400':
+          description: Bad request
+        '403':
+          description: Forbidden 
+        '500':
+          description: Internal server error
+
+  /auth/authenticate:
+    post:
+      tags:
+        - registration and authorization
+      summary: Аутентификация и авторизация пользователя
+      description: Аунтификация и авторизация пользователя с помощью почты и пароля. При успешной попытки входа, возвращается JWT-токен
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Authentication'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JWT'
+        '400':
+          description: Bad request
+        '403':
+          description: Forbidden 
+        '404':
+          description: Not Found 
+        '500':
+          description: Internal server error
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Authentication:
+      type: object
+      description: Схема - форма для ввода логина и пароля.
+      properties:
+        email:
+          type: string
+          format: email
+          example: "test@test.ru"
+        password:
+          type: string
+          format: password
+          example: "test"
+    JWT:
+      type: object
+      description: Схема - ввывод JWT-токена, в ответе для пользователя
+      properties:
+        token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0QHRlc3QucnUiLCJpYXQiOjE3MjQxODYxNjgsImV4cCI6MTcyNDE4ODMyOH0.j-wCndlH7ZsRZIlwDkQPcxnWB2MnEx-vFdEo8-pbRaU"
+        
+
+security:
+  - BearerAuth: []
