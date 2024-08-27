@@ -2,17 +2,16 @@ openapi: 3.0.1
 info:
   title: Кредитный трекер и калькулятор API
   description: "\n\n\t\tНаш продукт - это кредитный трекер открытых позиций и калькулятор, для физических лиц. В первую очередь, наше приложение - микросервис для системы кредитования. \nМикросервис рассчитывает графики платежей по кредиту, и сохраняет их для авторизованных пользователей. Данные по кредиту можно посмотреть в личном кабинете приложения, или получить данные в виде JSON, отправив запрос с другого сервиса"
-  
   version: 1.0.0
 servers:
-  # Added by API Auto Mocking Plugin
-  - description: SwaggerHub API Auto Mocking
-    url: https://virtserver.swaggerhub.com/BARBASHINA2016/KreditT1/1.0.0
   - url: /team21/api/v1
     description: Endpoint
 tags:
   - name: registration and authorization
     description: Методы для регистрации и авторизации
+  - name: loan management
+    description: Методы для управления кредитами
+
 paths:
   /auth/register:
     post:
@@ -70,6 +69,155 @@ paths:
         '500':
           description: Internal server error
 
+  /loan/calculate:
+    post:
+      tags:
+        - loan management
+      summary: Рассчитать график платежей по кредиту
+      description: Рассчитывает ежемесячные платежи и предоставляет подробную информацию о каждом платеже на основе введенных данных о кредите.
+      security: []
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoanRequest'
+      responses:
+        '200':
+          description: ОК
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanCalculationResponse'
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
+
+  /loan/save:
+    post:
+      tags:
+        - loan management
+      summary: Сохранить информацию о кредите для пользователя
+      description: Сохраняет информацию о кредите для указанного пользователя.
+      parameters:
+        - name: userId
+          description: id пользователя, для которого надо сохранить кредит
+          in: query
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoanRequest'
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: ОК
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanCalculationResponse'
+        '400':
+          description: Bad request
+        '404':
+          description: Not Found
+        '500':
+          description: Internal server error
+  /loan/{loanId}/makePayment:
+    post:
+      tags:
+       - loan management
+      summary: Внести платеж больше расчетной суммы 
+      parameters:
+        - name: loanId
+          description: id кредита
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        description: Самма превышающая расчетный платеж
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pay'
+      responses:
+        '200':
+          description: ОК
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayGood'
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+        '500':
+          description: Internal server error
+
+
+
+  /loan/{id}:
+    get:
+      tags:
+        - loan management
+      summary: Получить информацию о кредите по его ID
+      description: Возвращает подробную информацию о кредите по заданному ID.
+      parameters:
+        - name: id
+          description: id кредита
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: ОК
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanCalculationResponse'
+        '404':
+          description: Not Found
+        '500':
+          description: Internal server error
+
+  /loan/getUserLoans/{id}:
+    get:
+      tags:
+        - loan management
+      summary: Получить кредиты пользователя
+      description: Возвращает все кредиты пользователя по его ID.
+      parameters:
+        - name: id
+          description: id пользователя, для которого надо получить текущие открытые кредиты
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: ОК
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanCalculationResponse'
+        '404':
+          description: Not Found
+        '500':
+          description: Internal server error
+
 components:
   securitySchemes:
     BearerAuth:
@@ -91,12 +239,87 @@ components:
           example: "test"
     JWT:
       type: object
-      description: Схема - ввывод JWT-токена, в ответе для пользователя
+      description: Схема - вывод JWT-токена, в ответе для пользователя
       properties:
         token:
           type: string
           example: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0QHRlc3QucnUiLCJpYXQiOjE3MjQxODYxNjgsImV4cCI6MTcyNDE4ODMyOH0.j-wCndlH7ZsRZIlwDkQPcxnWB2MnEx-vFdEo8-pbRaU"
-        
+    Pay:
+      type: object
+      description: Сумма платежа выше расчетного
+      properties:
+        amount:
+          type: number
+          example: 40000
+    PayGood:
+      type: object
+      description: Если изменение платежа прошло успешно
+      properties:
+        successfully:
+          type: string
+          example: Payment made
+      
+    LoanRequest:
+      type: object
+      description: Запрос для расчета или сохранения кредита.
+      properties:
+        amount:
+          type: number
+          example: 40000000
+        interestRate:
+          type: number
+          format: float
+          example: 12.0
+        termInMonth:
+          type: integer
+          example: 2
+    LoanCalculationResponse:
+      type: object
+      description: Ответ с расчетом платежей по кредиту.
+      properties:
+        amount:
+          type: number
+          example: 40000000
+        interestRate:
+          type: number
+          format: float
+          example: 12.0
+        termInMonth:
+          type: integer
+          example: 2
+        monthlyPayment:
+          type: number
+          example: 20300497.51
+        payment:
+          type: object
+          properties:
+            paymentDetails:
+              type: array
+              items:
+                type: object
+                properties:
+                  paymentId:
+                    type: integer
+                    example: 1
+                  paymentDate:
+                    type: string
+                    format: date
+                    example: "2024-08-24"
+                  paymentAmount:
+                    type: number
+                    example: 20300497.51
+                  interest:
+                    type: number
+                    example: 400000.00
+                  principal:
+                    type: number
+                    example: 19900497.51
+                  remainingBalance:
+                    type: number
+                    example: 20099502.49
+                  paid:
+                    type: boolean
+                    example: false
 
 security:
   - BearerAuth: []
